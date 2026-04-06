@@ -1,0 +1,9 @@
+crawl4ai
+aiohttp
+beautifulsoup4
+python-dateutil
+SQLAlchemy
+psycopg[binary]
+pymysql
+Flask
+flask-cors

@@ -1,0 +1,42 @@
+CREATE TABLE `zokodaily_news` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `site` varchar(100) NOT NULL COMMENT 'source website',
+  `title` varchar(255) NOT NULL COMMENT 'news title',
+  `chinese_title` varchar(255) DEFAULT NULL COMMENT 'chinese title',
+  `summary` text COMMENT 'news summary',
+  `chinese_summary` text COMMENT 'chinese summary',
+  `news_date` date NOT NULL COMMENT 'news date',
+  `content` longtext NOT NULL COMMENT 'news content',
+  `chinese_content` longtext COMMENT 'chinese content',
+  `bilingual_content` longtext DEFAULT NULL,
+  `url` varchar(255) NOT NULL COMMENT 'news url',
+  `category` int NOT NULL DEFAULT '0' COMMENT 'category, 0:general,1:political, 2:economy,3:entertaining,4:headline',
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT 'creator',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT 'updater',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'update time',
+  `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT 'is deleted',
+  `tenant_id` bigint NOT NULL DEFAULT '0' COMMENT 'tenant id',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_site_title_date` (`site`,`title`,`news_date`),
+  UNIQUE KEY `uniq_site_url` (`site`,`url`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='ghana news';
+
+CREATE TABLE `zokodaily_news_image` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `news_id` bigint NOT NULL COMMENT 'related news id',
+  `source_url` varchar(500) DEFAULT NULL COMMENT 'source image url',
+  `local_path` varchar(500) DEFAULT NULL COMMENT 'downloaded local path',
+  `img_desc` varchar(255) DEFAULT NULL COMMENT 'image description',
+  `is_cover` bit(1) NOT NULL DEFAULT b'1' COMMENT 'is cover image',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT 'image order',
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT 'creator',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT 'updater',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'update time',
+  `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT 'is deleted',
+  `tenant_id` bigint NOT NULL DEFAULT '0' COMMENT 'tenant id',
+  PRIMARY KEY (`id`),
+  KEY `idx_news_id` (`news_id`),
+  UNIQUE KEY `uniq_news_source_url` (`news_id`,`source_url`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='ghana news images';

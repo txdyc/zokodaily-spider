@@ -1,0 +1,677 @@
+openapi: 3.0.3
+info:
+  title: ZokoDaily API
+  version: 1.0.0
+  description: |
+    OpenAPI specification for the Flask backend APIs that serve news and local business places data.
+
+    Main capabilities:
+    - News list and search
+    - News detail with multilingual content
+    - Place category list
+    - Place list
+    - Place detail
+    - Media file access for downloaded local images
+servers:
+  - url: http://127.0.0.1:5000
+    description: Local development server
+tags:
+  - name: Health
+  - name: News
+  - name: Places
+  - name: Media
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+
+  /api/news:
+    get:
+      tags: [News]
+      summary: Get news list
+      description: Returns paginated news summaries for frontend news list pages.
+      operationId: listNews
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/NewsCategory'
+      responses:
+        '200':
+          description: Paginated news list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/news/search:
+    get:
+      tags: [News]
+      summary: Search news
+      description: Supports fuzzy keyword search, exact date search, date range search, and category filtering.
+      operationId: searchNews
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: q
+          in: query
+          description: Fuzzy keyword for title, summary, content, Chinese fields, and bilingual content
+          required: false
+          schema:
+            type: string
+        - name: date
+          in: query
+          description: Exact news date in YYYY-MM-DD format
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: date_from
+          in: query
+          description: Start date in YYYY-MM-DD format
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          description: End date in YYYY-MM-DD format
+          required: false
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/NewsCategory'
+      responses:
+        '200':
+          description: Paginated news search result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/news/{news_id}:
+    get:
+      tags: [News]
+      summary: Get news detail
+      description: Returns full news detail, including multilingual content and related images.
+      operationId: getNewsDetail
+      parameters:
+        - name: news_id
+          in: path
+          required: true
+          description: News record ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: News detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/place-categories:
+    get:
+      tags: [Places]
+      summary: Get place categories
+      description: Returns the list of available Google Maps place categories derived from crawler keywords.
+      operationId: listPlaceCategories
+      responses:
+        '200':
+          description: Place category list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceCategoryListResponse'
+
+  /api/places:
+    get:
+      tags: [Places]
+      summary: Get place list
+      description: Returns paginated place list with cover image, name, category, and closing time.
+      operationId: listPlaces
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: q
+          in: query
+          description: Fuzzy keyword search for place name, category, address, and raw text
+          required: false
+          schema:
+            type: string
+        - name: search_keyword
+          in: query
+          description: Crawler search keyword such as restaurants, supermarkets, hotels, coffee shops, shopping malls
+          required: false
+          schema:
+            type: string
+            example: restaurants
+        - name: category
+          in: query
+          description: Place category fuzzy filter, such as Restaurant or Supermarket
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated place list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/places/{place_hash}:
+    get:
+      tags: [Places]
+      summary: Get place detail
+      description: Returns full place detail and all related images.
+      operationId: getPlaceDetail
+      parameters:
+        - name: place_hash
+          in: path
+          required: true
+          description: Unique place hash
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Place detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /media/{filename}:
+    get:
+      tags: [Media]
+      summary: Access downloaded local media file
+      description: Returns a local media file stored under the downloads directory.
+      operationId: getMediaFile
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          description: Relative file path under the downloads directory
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Media file stream
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Page number, starting from 1
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      description: Page size
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 10
+    NewsCategory:
+      name: category
+      in: query
+      description: News category as integer or label
+      required: false
+      schema:
+        oneOf:
+          - type: integer
+            enum: [0, 1, 2, 3, 4]
+          - type: string
+            enum: [general, political, economy, entertaining, headline]
+      examples:
+        byId:
+          value: 2
+        byLabel:
+          value: economy
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: bad_request
+            message: bad request
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: not_found
+            message: resource not found
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+    Pagination:
+      type: object
+      required: [page, page_size, total, total_pages]
+      properties:
+        page:
+          type: integer
+          example: 1
+        page_size:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 139
+        total_pages:
+          type: integer
+          example: 14
+
+    NewsImage:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 405
+        source_url:
+          type: string
+          example: https://www.graphic.com.gh/images/2026/Apr/02/sample.jpg
+        local_path:
+          type: string
+          example: downloads/news_images/graphic/example.jpg
+        image_url:
+          type: string
+          example: /media/news_images/graphic/example.jpg
+        description:
+          type: string
+        is_cover:
+          type: boolean
+          example: true
+        sort_order:
+          type: integer
+          example: 0
+
+    NewsSummary:
+      type: object
+      required:
+        - id
+        - site
+        - title
+        - chinese_title
+        - news_date
+        - category
+        - category_label
+        - thumbnail_path
+        - thumbnail_url
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 601
+        site:
+          type: string
+          example: myjoyonline
+        title:
+          type: string
+        chinese_title:
+          type: string
+        news_date:
+          type: string
+          format: date
+          example: 2026-04-03
+        category:
+          type: integer
+          enum: [0, 1, 2, 3, 4]
+          example: 0
+        category_label:
+          type: string
+          example: general
+        thumbnail_path:
+          type: string
+          example: downloads/news_images/myjoyonline/example.jpg
+        thumbnail_url:
+          type: string
+          nullable: true
+          example: /media/news_images/myjoyonline/example.jpg
+
+    NewsDetail:
+      type: object
+      required:
+        - id
+        - site
+        - source_url
+        - news_date
+        - category
+        - category_label
+        - title
+        - chinese_title
+        - summary
+        - chinese_summary
+        - content
+        - chinese_content
+        - bilingual_content
+        - images
+      properties:
+        id:
+          type: integer
+          format: int64
+        site:
+          type: string
+          example: graphic
+        source_url:
+          type: string
+        news_date:
+          type: string
+          format: date
+        category:
+          type: integer
+          enum: [0, 1, 2, 3, 4]
+        category_label:
+          type: string
+        creator:
+          type: string
+        title:
+          type: string
+        chinese_title:
+          type: string
+        summary:
+          type: string
+        chinese_summary:
+          type: string
+        content:
+          type: string
+        chinese_content:
+          type: string
+        bilingual_content:
+          type: string
+          description: Paragraph-by-paragraph bilingual content where the source paragraph is followed by its Chinese translation
+        cover_image:
+          allOf:
+            - $ref: '#/components/schemas/NewsImage'
+          nullable: true
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewsImage'
+        create_time:
+          type: string
+          format: date-time
+          nullable: true
+        update_time:
+          type: string
+          format: date-time
+          nullable: true
+
+    NewsListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewsSummary'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    PlaceCategory:
+      type: object
+      required: [search_keyword, display_name, place_count, sample_category]
+      properties:
+        search_keyword:
+          type: string
+          example: restaurants
+        display_name:
+          type: string
+          example: Restaurants
+        place_count:
+          type: integer
+          example: 40
+        sample_category:
+          type: string
+          example: Restaurant
+
+    PlaceCategoryListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceCategory'
+
+    PlaceSummary:
+      type: object
+      required:
+        - place_hash
+        - record_hash
+        - name
+        - category
+        - search_keyword
+        - opening_text
+        - closing_time
+        - cover_image_path
+        - cover_image_url
+        - rating
+        - review_count
+      properties:
+        place_hash:
+          type: string
+        record_hash:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          example: Restaurant
+        search_keyword:
+          type: string
+          example: restaurants
+        opening_text:
+          type: string
+          example: Open ⋅ Closes 10 PM
+        closing_time:
+          type: string
+          example: 10 PM
+        cover_image_path:
+          type: string
+          example: downloads/google_maps_places/restaurants/hash/01.jpg
+        cover_image_url:
+          type: string
+          nullable: true
+          example: /media/google_maps_places/restaurants/hash/01.jpg
+        rating:
+          type: string
+          example: "4.2"
+        review_count:
+          type: string
+          example: "128"
+
+    PlaceImage:
+      type: object
+      properties:
+        image_hash:
+          type: string
+        record_hash:
+          type: string
+        place_hash:
+          type: string
+        detail_url:
+          type: string
+        source_url:
+          type: string
+        local_path:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+        image_order:
+          type: string
+          example: "1"
+        downloaded_at:
+          type: string
+          example: '2026-04-02T12:00:10+00:00'
+
+    PlaceDetail:
+      type: object
+      required:
+        - place_hash
+        - record_hash
+        - search_keyword
+        - search_rank
+        - name
+        - category
+        - address
+        - phone
+        - website
+        - rating
+        - review_count
+        - opening_text
+        - closing_time
+        - plus_code
+        - latitude
+        - longitude
+        - detail_url
+        - source_search_url
+        - raw_text
+        - cover_image_path
+        - cover_image_url
+        - image_paths
+        - image_urls
+        - image_count
+        - crawled_at
+        - images
+      properties:
+        place_hash:
+          type: string
+        record_hash:
+          type: string
+        search_keyword:
+          type: string
+        search_rank:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        website:
+          type: string
+        rating:
+          type: string
+        review_count:
+          type: string
+        opening_text:
+          type: string
+        closing_time:
+          type: string
+        plus_code:
+          type: string
+        latitude:
+          type: string
+        longitude:
+          type: string
+        detail_url:
+          type: string
+        source_search_url:
+          type: string
+        raw_text:
+          type: string
+        cover_image_path:
+          type: string
+        cover_image_url:
+          type: string
+          nullable: true
+        image_paths:
+          type: array
+          items:
+            type: string
+        image_urls:
+          type: array
+          items:
+            type: string
+            nullable: true
+        image_count:
+          type: string
+          example: "2"
+        crawled_at:
+          type: string
+          example: '2026-04-02T12:00:00+00:00'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceImage'
+
+    PlaceListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceSummary'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
