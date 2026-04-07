@@ -21,6 +21,7 @@ class Settings:
     timeout_seconds: int = int(os.getenv("CRAWL_TIMEOUT_SECONDS", "45"))
     concurrency: int = int(os.getenv("CRAWL_CONCURRENCY", "4"))
     image_dir: str = os.getenv("NEWS_IMAGE_DIR", "downloads/news_images")
+    property_image_dir: str = os.getenv("PROPERTY_IMAGE_DIR", "downloads/property_images")
     user_agent: str = os.getenv(
         "CRAWL_USER_AGENT",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
