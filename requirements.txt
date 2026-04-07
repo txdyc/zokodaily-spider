@@ -5,5 +5,3 @@ python-dateutil
 SQLAlchemy
 psycopg[binary]
 pymysql
-Flask
-flask-cors
