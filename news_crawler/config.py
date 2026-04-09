@@ -9,8 +9,8 @@ class Settings:
     db_name: str = os.getenv("DB_NAME", "zokodaily")
     db_host: str = os.getenv("DB_HOST", "localhost")
     db_port: int = int(os.getenv("DB_PORT", "3306"))
-    db_user: str = os.getenv("DB_USER", "root")
-    db_password: str = os.getenv("DB_PASSWORD", "Napster@1009")
+    db_user: str = os.getenv("DB_USER", "zokodaily")
+    db_password: str = os.getenv("DB_PASSWORD", "daily2026")
     db_charset: str = os.getenv("DB_CHARSET", "utf8mb4")
     db_use_unicode: bool = os.getenv("DB_USE_UNICODE", "true").lower() == "true"
     llm_api_key: str = os.getenv("CLOSEAI_API_KEY", os.getenv("LLM_API_KEY", "sk-iLVlw7F2p9RjUEqz6rZRM2nJisziatf1WVBh2Q6oA7YZItK1"))
