@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import re
+from urllib.parse import urljoin
 
 import aiohttp
 
@@ -34,13 +35,38 @@ class LLMTranslator:
             }
             timeout = aiohttp.ClientTimeout(total=90)
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.post(self.settings.llm_endpoint, headers=headers, json=body) as resp:
-                    resp.raise_for_status()
-                    content = (await resp.json())["choices"][0]["message"]["content"]
-                    return json.loads(re.sub(r"^```json|```$", "", content.strip(), flags=re.M))
+                content = await self._request_content(session, headers, body)
+            return json.loads(re.sub(r"^```json|```$", "", content.strip(), flags=re.M))
         except Exception as exc:
             logger.error("LLM request failed: %s", exc)
             return {}
+
+    async def _request_content(self, session, headers: dict, body: dict) -> str:
+        """POST to the chat-completions endpoint, preserving POST across redirects.
+
+        aiohttp (like browsers) downgrades POST to GET when it auto-follows a
+        301/302/303 redirect. Some OpenAI-compatible endpoints answer with such a
+        redirect (e.g. trailing-slash or path normalization), which turns the
+        request into ``GET /v1/chat/completions`` and triggers the upstream
+        ``Invalid URL (GET /v1/chat/completions)`` error. We disable automatic
+        following and re-issue the POST (method + body intact) to the redirect
+        target instead.
+        """
+        url = self.settings.llm_endpoint
+        for _ in range(5):
+            async with session.post(url, headers=headers, json=body, allow_redirects=False) as resp:
+                if resp.status in (301, 302, 303, 307, 308):
+                    location = resp.headers.get("Location")
+                    if not location:
+                        resp.raise_for_status()
+                        return ""
+                    url = urljoin(url, location)
+                    logger.info("LLM endpoint redirected; re-issuing POST to %s", url)
+                    continue
+                resp.raise_for_status()
+                data = await resp.json()
+                return data["choices"][0]["message"]["content"]
+        raise RuntimeError(f"Too many redirects for LLM endpoint {self.settings.llm_endpoint}")
 
     async def extract_article(self, raw_text: str) -> dict[str, str]:
         system = "Extract news article fields from text. Return JSON with title, summary, news_date, content. Leave unknown fields empty."
