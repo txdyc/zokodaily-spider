@@ -13,9 +13,9 @@ class Settings:
     db_password: str = os.getenv("DB_PASSWORD", "daily2026")
     db_charset: str = os.getenv("DB_CHARSET", "utf8mb4")
     db_use_unicode: bool = os.getenv("DB_USE_UNICODE", "true").lower() == "true"
-    llm_api_key: str = os.getenv("CLOSEAI_API_KEY", os.getenv("LLM_API_KEY", "sk-iLVlw7F2p9RjUEqz6rZRM2nJisziatf1WVBh2Q6oA7YZItK1"))
-    llm_model: str = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    llm_base_url: str = os.getenv("CLOSEAI_BASE_URL", os.getenv("LLM_BASE_URL", "https://api.openai-proxy.org/v1"))
+    llm_api_key: str = os.getenv("CLOSEAI_API_KEY", os.getenv("LLM_API_KEY", "sk-LzeDxfugGoxY7Hkgo8WcgDUIg8zpPaFLAxme0GPut5EGKbnh"))
+    llm_model: str = os.getenv("LLM_MODEL", "gpt-5.4-mini")
+    llm_base_url: str = os.getenv("CLOSEAI_BASE_URL", os.getenv("LLM_BASE_URL", "https://www.packyapi.com/v1"))
     max_pages: int = int(os.getenv("MAX_PAGES", "3"))
     max_articles: int = int(os.getenv("MAX_ARTICLES", "0"))
     timeout_seconds: int = int(os.getenv("CRAWL_TIMEOUT_SECONDS", "45"))
