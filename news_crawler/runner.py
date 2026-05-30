@@ -76,8 +76,16 @@ class NewsCrawlerRunner:
                         parsed.get("content", ""),
                     )
                     image_path = ""
-                    if parsed.get("img"):
-                        image_path = await self.images.download(http, spider.site_name, parsed["img"])
+                    candidates = parsed.get("img_candidates") or (
+                        [parsed["img"]] if parsed.get("img") else []
+                    )
+                    for candidate in candidates:
+                        image_path = await self.images.download(
+                            http, spider.site_name, candidate, referer=seed.url
+                        )
+                        if image_path:
+                            parsed["img"] = candidate
+                            break
                     return spider.build_record(seed, parsed, translation, image_path)
                 except Exception as exc:
                     logger.error("Parse failed for %s: %s", seed.url, exc)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import imghdr
 import logging
 import mimetypes
 from pathlib import Path
@@ -9,6 +8,7 @@ from urllib.parse import urlparse
 
 from news_crawler.config import Settings
 from news_crawler.http import HttpClient
+from news_crawler.images import ImageDownloader as _NewsImageDownloader
 
 logger = logging.getLogger("property-crawler")
 
@@ -55,7 +55,7 @@ class PropertyImageDownloader:
             ext = mimetypes.guess_extension(content_type)
             if ext:
                 return ".jpg" if ext == ".jpe" else ext
-        kind = imghdr.what(None, h=body)
+        kind = _NewsImageDownloader._sniff_image_kind(body)
         if kind:
             return ".jpg" if kind == "jpeg" else f".{kind}"
         suffix = Path(urlparse(image_url).path).suffix.lower()

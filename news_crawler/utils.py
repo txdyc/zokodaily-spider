@@ -3,10 +3,19 @@ from __future__ import annotations
 import re
 from datetime import date
 from typing import Iterable
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup, Tag
 from dateutil import parser as date_parser
+
+# Some sites reference images on legacy/alternate hosts that are flaky or
+# unreachable from certain networks (e.g. graphic.com.gh's old graphiconline.com
+# domain serves the same /images/ paths but its TLS endpoint intermittently
+# refuses connections). Rewrite those to the canonical, reliable host.
+LEGACY_IMAGE_HOST_REWRITES = {
+    "graphiconline.com": "www.graphic.com.gh",
+    "www.graphiconline.com": "www.graphic.com.gh",
+}
 
 
 def clean_text(value: str) -> str:
@@ -17,6 +26,23 @@ def clean_text(value: str) -> str:
 
 def normalize_url(base_url: str, candidate: str) -> str:
     return urljoin(base_url, (candidate or "").strip())
+
+
+def sanitize_image_url(base_url: str, candidate: str) -> str:
+    """Resolve, validate and normalize an image URL for downloading.
+
+    Returns an absolute http(s) URL, rewriting known-flaky legacy hosts, or an
+    empty string for non-downloadable values (data: URIs, empty, etc.).
+    """
+    url = normalize_url(base_url, candidate)
+    if not url.lower().startswith(("http://", "https://")):
+        return ""
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    rewrite = LEGACY_IMAGE_HOST_REWRITES.get(host)
+    if rewrite:
+        url = parsed._replace(netloc=rewrite).geturl()
+    return url
 
 
 def parse_date(value: str) -> date | None:

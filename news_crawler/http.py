@@ -32,12 +32,12 @@ class HttpClient:
         finally:
             response.release()
 
-    async def get(self, url: str) -> aiohttp.ClientResponse:
+    async def get(self, url: str, headers: dict[str, str] | None = None) -> aiohttp.ClientResponse:
         if not self._session:
             raise RuntimeError("HttpClient session is not initialized.")
         for attempt in range(1, 4):
             try:
-                response = await self._session.get(url, allow_redirects=True)
+                response = await self._session.get(url, allow_redirects=True, headers=headers)
                 response.raise_for_status()
                 return response
             except Exception as exc:

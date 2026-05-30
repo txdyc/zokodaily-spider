@@ -8,7 +8,15 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup, Tag
 
 from ..models import ArticleImageRecord, ArticleRecord, ArticleSeed, NewsSection
-from ..utils import clean_text, first_attr, first_text, normalize_url, parse_date, unique_strings
+from ..utils import (
+    clean_text,
+    first_attr,
+    first_text,
+    normalize_url,
+    parse_date,
+    sanitize_image_url,
+    unique_strings,
+)
 
 logger = logging.getLogger("news-crawler")
 
@@ -56,7 +64,23 @@ class BaseNewsSpider(ABC):
         urls = [normalize_url(section.url, link.get("href", "")) for link in soup.select("a[href]")]
         return [url for url in unique_strings(urls) if self.is_article_url(url)]
 
-    def parse_article(self, html: str, seed: ArticleSeed) -> tuple[dict[str, str], str]:
+    def extract_image_candidates(self, soup: BeautifulSoup, base_url: str) -> list[str]:
+        """Collect downloadable cover-image URLs in priority order.
+
+        Returns sanitized, de-duplicated http(s) URLs (one per selector, highest
+        priority first) so the downloader can fall back to the next candidate
+        when a URL is unreachable.
+        """
+        candidates: list[str] = []
+        for selector, attr in self.image_attr_selectors:
+            node = soup.select_one(selector)
+            if node and node.get(attr):
+                url = sanitize_image_url(base_url, clean_text(node.get(attr, "")))
+                if url:
+                    candidates.append(url)
+        return unique_strings(candidates)
+
+    def parse_article(self, html: str, seed: ArticleSeed) -> tuple[dict[str, object], str]:
         soup = BeautifulSoup(html, "html.parser")
         raw_text = clean_text(soup.get_text("\n", strip=True))
         title = first_attr(
@@ -80,8 +104,8 @@ class BaseNewsSpider(ABC):
         if not parsed_date:
             parsed_date = parse_date(first_text(soup, self.date_selectors))
         content = self.extract_content(soup)
-        img = first_attr(soup, self.image_attr_selectors)
-        img = normalize_url(seed.url, img) if img else ""
+        image_candidates = self.extract_image_candidates(soup, seed.url)
+        img = image_candidates[0] if image_candidates else ""
         img_desc = first_attr(soup, self.image_desc_attr_selectors)
         creator = self.extract_author(soup)
         return {
@@ -90,6 +114,7 @@ class BaseNewsSpider(ABC):
             "news_date": parsed_date.isoformat() if parsed_date else "",
             "content": content,
             "img": img,
+            "img_candidates": image_candidates,
             "img_desc": img_desc,
             "creator": creator,
         }, raw_text
